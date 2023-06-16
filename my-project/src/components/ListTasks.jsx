@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react'
 import toast from 'react-hot-toast';
+import { useDrag, useDragDropManager, useDrop } from 'react-dnd'
+import { HTML5Backend } from 'react-dnd-html5-backend'
+
 const ListTasks=({tasks, setTasks})=>{
 
      const [todos, setTodos] = useState([]);
@@ -26,6 +29,15 @@ const ListTasks=({tasks, setTasks})=>{
 }
 
 const Section = ({status, tasks, setTasks, todos, inProgress, closed}) =>{
+
+    const [{ isOver }, drop] = useDrop(() => ({
+        accept: "task",
+        drop: (item)=> addItemToSection(item.id),
+        collect: (monitor) => ({
+            isOver: !!monitor.isOver()
+        })
+      }))
+
     let text= "Требует выполнения";
     let bg="bg-slate-500"
     let tasksToMap=todos
@@ -41,8 +53,25 @@ const Section = ({status, tasks, setTasks, todos, inProgress, closed}) =>{
         bg="bg-green-500"
         tasksToMap=closed
     }
+
+    const addItemToSection=(id)=>{
+        setTasks((prev) =>{
+            const mTasks = prev.map((t)=>{
+                if(t.id=== id)
+                {
+                    return {...t,status}
+                }
+
+                return t;
+            })
+
+            localStorage.setItem("tasks", JSON.stringify(mTasks));
+            toast("Статус задачи изменен", {icon: "🦊"})
+            return mTasks;
+        })
+    };
     return (
-    <div className={`w-64`}>
+    <div ref={drop} className={`w-64 rounded-md  ${isOver ? "bg-lime-300": ""}`}>
         <HeadSection text={text} bg={bg} count={tasksToMap.length}/>
         {tasksToMap.length > 0 && tasksToMap.map((task)=> 
         <Task key={task.id} task={task} tasks={tasks} setTasks={setTasks} />)}
@@ -58,6 +87,14 @@ const HeadSection = ({text, bg, count}) =>{
 
 const Task = ({task, tasks, setTasks}) =>{
 
+    const [{ isDragging }, drag] = useDrag(() => ({
+        type: "task",
+        item: {id: task.id},
+        collect: (monitor) => ({
+          isDragging: !!monitor.isDragging()
+        })
+      }))
+      console.log(isDragging);
     const handleRemove = (id) =>{
         console.log(id);
 
@@ -69,7 +106,8 @@ const Task = ({task, tasks, setTasks}) =>{
     }
 
     return (
-    <div className={`relative p-4 mt-8 shadow-md rounded-md cursor-grab`}>
+    <div ref={drag} className={`relative p-4 mt-8 shadow-md rounded-md ${isDragging ? "opacity-25" : "opacity-100"} cursor-grab`}>
+        
         <p>{task.name}</p>
         <button className='absolute bottom-1 right-1 text-slate-400'
         onClick={()=>handleRemove(task.id)}>
