@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { v4 as uuidv4 } from 'uuid';
+import toast from 'react-hot-toast';
 const CreateTask=({tasks, setTasks})=>{
     const [task, setTask] = useState({
         id: "",
@@ -9,13 +10,32 @@ const CreateTask=({tasks, setTasks})=>{
     const handleSubmit=(e)=>
     {
         e.preventDefault();
+
+        if(task.name.length<3)
+        {
+            return toast.error("Задача должна содержать больше символов( > 3 )");
+        }
+
+        if(task.name.length>50)
+        {
+            return toast.error("Задача должна содержать меньше символов( < 50 )");
+        }
+
         setTasks((prev)=> {
             const list=[...prev, task];
 
             localStorage.setItem("tasks", JSON.stringify(list));
             return list;
-        })
+        });
+
+        toast.success("Задача добавлена!");
+        setTask({
+            id: "",
+            name: "",
+            status: "todo",
+        });
     };
+    
     return(
         <form onSubmit={handleSubmit}>
             <input 
